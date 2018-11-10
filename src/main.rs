@@ -23,13 +23,16 @@ fn read_file(filename: &String) {
 
     let lexer = lexer::Lexer::new(fbytes.by_ref());
 
-    for token in lexer {
+    for (token, metadata) in lexer {
         match token {
-            lexer::Token::Unexpected => {
+            lexer::TokenType::Unexpected => {
                 println!("Unexpected token!");
                 break;
             }
-            _ => println!("{:?}", token),
+            _ => {
+                println!("{:?}", metadata);
+                println!("{:?}", token);
+            }
         }
     }
 }
