@@ -4,7 +4,11 @@ use std::io::Error;
 pub enum Token {
   LeftParen,
   RightParen,
+  LeftSqrParen,
+  RightSqrParen,
+  Str(String),
   Name(String),
+  Symbol(String),
   Whitespace,
   Unexpected,
 }
@@ -27,19 +31,72 @@ impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {
   pub fn read_name(&mut self) -> Token {
     let mut name = String::new();
 
-    while let Some(c) = self.current {
+    while let Some(c) = self.next_byte() {
       match c {
         c if c.is_ascii_alphabetic() => {
-          self.current = Some(c);
-          name.push(c)
+          name.push(c);
+          self.consume_current();
         }
         _ => break,
       }
-
-      self.next_byte();
     }
 
     Token::Name(name)
+  }
+
+  pub fn read_symbol(&mut self) -> Token {
+    let mut name = String::new();
+
+    self.consume_current();
+
+    while let Some(c) = self.next_byte() {
+      match c {
+        c if c.is_ascii_alphabetic() => {
+          name.push(c);
+          self.consume_current();
+        }
+        _ => break,
+      }
+    }
+
+    Token::Symbol(name)
+  }
+
+  pub fn read_str(&mut self) -> Token {
+    let mut name = String::new();
+    let mut esc = false;
+
+    self.consume_current();
+
+    while let Some(c) = self.next_byte() {
+      let mut esc_next = false;
+
+      match c {
+        '"' if !esc => {
+          self.consume_current();
+          break;
+        }
+        '\n' if !esc => return Token::Unexpected,
+        '\\' => {
+          name.push(c);
+          self.consume_current();
+          esc_next = true
+        }
+        _ => {
+          name.push(c);
+          self.consume_current();
+        }
+      }
+
+      esc = esc_next;
+    }
+
+    Token::Str(name)
+  }
+
+  pub fn read_syntax(&mut self, token: Token) -> Option<Token> {
+    self.consume_current();
+    Some(token)
   }
 
   pub fn read_token(&mut self) -> Option<Token> {
@@ -47,11 +104,16 @@ impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {
 
     match c {
       Some(c) => match c {
-        '(' => Some(Token::LeftParen),
-        ')' => Some(Token::RightParen),
+        '(' => self.read_syntax(Token::LeftParen),
+        ')' => self.read_syntax(Token::RightParen),
+        '[' => self.read_syntax(Token::LeftSqrParen),
+        ']' => self.read_syntax(Token::RightSqrParen),
+
+        ':' => Some(self.read_symbol()),
         '"' => Some(self.read_str()),
+
         c if c.is_ascii_alphabetic() => Some(self.read_name()),
-        c if c.is_ascii_whitespace() => Some(Token::Whitespace),
+        c if c.is_ascii_whitespace() => self.read_syntax(Token::Whitespace),
 
         _ => Some(Token::Unexpected),
       },
@@ -59,18 +121,27 @@ impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {
     }
   }
 
+  pub fn consume_current(&mut self) {
+    self.current = None;
+  }
+
   pub fn next_byte(&mut self) -> Option<char> {
-    let val = self.chars.next();
+    let current = self.current;
 
-    self.current = match val {
-      Some(val) => match val {
-        Ok(val) => Some(val as char),
-        Err(_e) => panic!("Problem reading file"),
-      },
-      None => None,
-    };
+    match current {
+      None => {
+        self.current = match self.chars.next() {
+          Some(val) => match val {
+            Ok(val) => Some(val as char),
+            Err(_e) => panic!("Problem reading file"),
+          },
+          None => None,
+        };
 
-    self.current
+        self.current
+      }
+      Some(current) => Some(current),
+    }
   }
 }
 
