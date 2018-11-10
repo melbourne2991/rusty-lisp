@@ -1,0 +1,6 @@
+[package]
+name = "rusticle"
+version = "0.1.0"
+authors = ["Will Leach <wleach1992@gmail.com>"]
+
+[dependencies]
