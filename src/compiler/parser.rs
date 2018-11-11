@@ -2,6 +2,7 @@ use compiler::lexer::{TokenMetadata, TokenType};
 
 enum NonTerminal {
   Program,
+  List,
 }
 
 enum ASTNodeType<'a> {
@@ -11,22 +12,26 @@ enum ASTNodeType<'a> {
 
 struct ASTNonTerminal<'a> {
   node_type: NonTerminal,
-  children: &'a Vec<ASTNodeType<'a>>,
+  children: Vec<&'a ASTNodeType<'a>>,
 }
 
 struct ASTTree<'a> {
   nodes: Vec<ASTNonTerminal<'a>>,
 }
 
-#[derive(Debug, Copy, Clone)]
-enum ParserState {
-  List,
-}
-
 pub struct Parser<'a> {
   tree: ASTTree<'a>,
   token: Option<(TokenType, TokenMetadata)>,
-  state: Vec<ParserState>,
+  state: Vec<(NonTerminal, &'a ASTNonTerminal<'a>)>,
+}
+
+impl<'a> ASTNonTerminal<'a> {
+  pub fn new(node_type: NonTerminal) -> ASTNonTerminal<'a> {
+    ASTNonTerminal {
+      node_type: node_type,
+      children: vec![],
+    }
+  }
 }
 
 impl<'a> Parser<'a> {
@@ -41,20 +46,33 @@ impl<'a> Parser<'a> {
   }
 
   pub fn feed(&mut self, token: (TokenType, TokenMetadata)) {
-    match self.current_state() {
-      None => self.handle_default_state(token),
+    let current_state = self.state.first();
+
+    match current_state {
+      Program => self.handle_default_state(token),
+      List => {}
       _ => {}
-    }
+    };
   }
 
-  fn current_state(&mut self) -> Option<ParserState> {
-    self.state.first().cloned()
+  fn new_parser_state(&mut self, node_type: NonTerminal) {
+    let node = ASTNonTerminal::new(node_type);
   }
+
+  // fn current_state(&self) -> Option<&NonTerminal> {
+  //   let state = &self.state;
+
+  //   if let Some((non_terminal, _ast)) = state.first() {
+  //     return Some(non_terminal)
+  //   }
+
+  //   None
+  // }
 
   fn handle_default_state(&mut self, (token_type, metadata): (TokenType, TokenMetadata)) {
     match token_type {
       TokenType::Whitespace => {}
-      TokenType::LeftParen => self.state.push(ParserState::List),
+      TokenType::LeftParen => {}
       _ => panic!("Invalid token"),
     }
   }
