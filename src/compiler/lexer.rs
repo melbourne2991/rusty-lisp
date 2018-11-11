@@ -12,6 +12,7 @@ pub enum TokenType {
   Str(String),
   Name(String),
   Symbol(String),
+  Start,
 }
 
 #[derive(Debug)]

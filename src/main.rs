@@ -19,12 +19,10 @@ fn read_file(filename: &String) {
     println!("In file {}", filename);
 
     let f = File::open(filename).expect("file not found!");
+
     let mut fbytes = f.bytes();
-
     let lexer = compiler::lexer::Lexer::new(fbytes.by_ref());
-    let mut parser = compiler::parser::Parser::new(lexer);
-
-    parser.parse()
+    let mut parser = compiler::parser::Parser::new();
 
     // for (token, metadata) in lexer {
     //     match token {
