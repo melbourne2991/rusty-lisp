@@ -2,15 +2,20 @@ use compiler::ast_tree::{ASTNode, ASTNodeType, ASTNonTerminal, ASTTree, NonTermi
 use compiler::lexer::{Token, TokenMetadata, TokenType};
 
 pub struct Parser {
+  pub tree: ASTTree,
+
   token: Option<(TokenType, TokenMetadata)>,
-  tree: ASTTree,
   state: Vec<usize>,
 }
 
 impl Parser {
   pub fn new() -> Parser {
-    let mut tree = ASTTree::new(ASTNonTerminal::new(NonTerminalType::Program, None));
-    let root_ref = tree.get_root_ref();
+    let mut tree = ASTTree::new();
+
+    let root_ref = tree.add_node(&ASTNode::NonTerminal(ASTNonTerminal::new(
+      NonTerminalType::Program,
+      None,
+    )));
 
     let parser = Parser {
       tree,
@@ -33,7 +38,7 @@ impl Parser {
 
     let node_ref = self
       .tree
-      .add_child_to_node(current_state_ref, ASTNode::NonTerminal(non_terminal));
+      .add_to_node(current_state_ref, ASTNode::NonTerminal(non_terminal));
 
     self.state.push(node_ref);
   }

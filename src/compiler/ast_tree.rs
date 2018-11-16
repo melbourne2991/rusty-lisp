@@ -1,6 +1,8 @@
 use compiler::lexer::Token;
+use std::fmt;
+use std::fmt::Display;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum NonTerminalType {
   Program,
   List,
@@ -33,7 +35,6 @@ pub struct ASTNonTerminal {
 
 pub struct ASTTree {
   nodes: Vec<ASTNodeInternal>,
-  pub root: usize,
 }
 
 impl ASTNonTerminal {
@@ -46,15 +47,9 @@ impl ASTNonTerminal {
 }
 
 impl ASTTree {
-  pub fn new(root_node: ASTNonTerminal) -> ASTTree {
-    let mut nodes = vec![];
-    let root = add_node_to_vec(&mut nodes, &root_node);
-
-    ASTTree { nodes: nodes, root }
-  }
-
-  pub fn get_root_ref(&mut self) -> usize {
-    self.root
+  pub fn new() -> ASTTree {
+    let nodes = vec![];
+    ASTTree { nodes: nodes }
   }
 
   pub fn get_node_type(&mut self, node_ref: usize) -> ASTNodeType {
@@ -66,63 +61,87 @@ impl ASTTree {
     }
   }
 
-  pub fn add_child_to_node(&mut self, node_ref: usize, child: ASTNode) -> usize {
-    let node_refs = self.add_children_to_node(node_ref, vec![child]);
-    node_refs[0]
+  pub fn add_node(&mut self, node: &ASTNode) -> usize {
+    match node {
+      ASTNode::Terminal(token) => self.nodes.push(ASTNodeInternal::Terminal(token.clone())),
+      ASTNode::NonTerminal(non_terminal) => {
+        let children = &non_terminal.children;
+
+        let new_node = ASTNodeInternal::NonTerminal(ASTNonTerminalInternal {
+          node_type: non_terminal.node_type,
+          children: match children {
+            Some(children) => children.iter().map(|child| self.add_node(child)).collect(),
+            _ => vec![],
+          },
+        });
+
+        self.nodes.push(new_node)
+      }
+    }
+
+    self.nodes.len() - 1
   }
 
-  pub fn add_children_to_node(&mut self, node_ref: usize, children: Vec<ASTNode>) -> Vec<usize> {
-    let result = self.nodes.get_mut(node_ref).expect("Node not found");
+  pub fn add_to_node(&mut self, node_ref: usize, node: ASTNode) -> usize {
+    let child_node_ref = self.add_node(&node);
+    let found = self
+      .nodes
+      .get_mut(node_ref)
+      .expect("Node with ref does not exist");
 
-    if let ASTNodeInternal::NonTerminal(node) = result {
-      let node_refs = self.add_nodes(children);
-
-      node.children.extend(node_refs);
-
-      return node_refs.clone();
+    if let ASTNodeInternal::NonTerminal(result) = found {
+      result.children.push(child_node_ref);
+      return child_node_ref;
     } else {
-      panic!("Can only add children to NonTerminal nodes")
+      panic!("Node is not a NonTerminal");
     }
   }
 
-  fn add_nodes(&mut self, children: Vec<ASTNode>) -> Vec<usize> {
-    add_nodes_to_vect(&mut self.nodes, children)
-  }
+  fn traverse_node<F>(&self, node_ref: usize, depth: usize, callback: &mut F)
+  where
+    F: FnMut(ASTNodeType, usize) -> (),
+  {
+    if let Some(node) = self.nodes.get(node_ref) {
+      match node {
+        ASTNodeInternal::NonTerminal(non_terminal) => {
+          callback(ASTNodeType::NonTerminal(non_terminal.node_type), depth);
 
-  pub fn add_node(&mut self, non_terminal: ASTNonTerminal) -> usize {
-    add_node_to_vec(&mut self.nodes, &non_terminal)
-  }
-
-  fn add_leaf(&mut self, token: Token) -> usize {
-    add_leaf_to_vec(&mut self.nodes, token)
+          for child_ref in &non_terminal.children {
+            self.traverse_node(*child_ref, depth + 1, callback)
+          }
+        }
+        ASTNodeInternal::Terminal(token) => {
+          callback(ASTNodeType::Terminal(token.clone()), depth + 1)
+        }
+      }
+    } else {
+      print!("Node not found -> {:?}", node_ref);
+    }
   }
 }
 
-fn add_node_to_vec(vect: &mut Vec<ASTNodeInternal>, non_terminal: &ASTNonTerminal) -> usize {
-  let mut children_idxs: Vec<usize> = vec![];
-
-  if let Some(node_children) = non_terminal.children {
-    children_idxs = add_nodes_to_vect(vect, node_children);
+impl Display for NonTerminalType {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+      NonTerminalType::Program => write!(f, "Program"),
+      NonTerminalType::List => write!(f, "List"),
+    }
   }
-
-  vect.push(ASTNodeInternal::NonTerminal(ASTNonTerminalInternal {
-    node_type: non_terminal.node_type,
-    children: children_idxs,
-  }));
-
-  vect.len()
 }
 
-fn add_leaf_to_vec(vect: &mut Vec<ASTNodeInternal>, token: Token) -> usize {
-  vect.push(ASTNodeInternal::Terminal(token));
-  vect.len()
-}
+impl Display for ASTTree {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "ASTTree: {{\n");
 
-fn add_nodes_to_vect(vect: &mut Vec<ASTNodeInternal>, nodes: Vec<ASTNode>) -> Vec<usize> {
-  nodes
-    .iter()
-    .map(|child| match child {
-      ASTNode::Terminal(token) => add_leaf_to_vec(vect, token.clone()),
-      ASTNode::NonTerminal(non_terminal) => add_node_to_vec(vect, non_terminal),
-    }).collect()
+    self.traverse_node(0, 1, &mut |node, depth| match node {
+      ASTNodeType::NonTerminal(non_terminal_type) => {
+        write!(f, "{:width$}-{}\n", "", non_terminal_type, width = depth);
+      }
+      ASTNodeType::Terminal(token) => {
+        write!(f, "{:width$}-{}\n", "", token, width = depth);
+      }
+    });
+
+    write!(f, "}}")
+  }
 }

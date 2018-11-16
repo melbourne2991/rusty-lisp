@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Display;
 use std::io::Error;
 
 #[derive(Debug, Clone)]
@@ -34,6 +36,29 @@ impl Clone for Token {
       token_type: self.token_type.clone(),
       metadata: self.metadata,
     }
+  }
+}
+
+impl Display for TokenType {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      TokenType::LeftParen => write!(f, "LeftParen"),
+      TokenType::RightParen => write!(f, "RightParen"),
+      TokenType::LeftSqrParen => write!(f, "LeftSqrParen"),
+      TokenType::RightSqrParen => write!(f, "RightSqrParen"),
+      TokenType::Whitespace => write!(f, "Whitespace"),
+      TokenType::Unexpected => write!(f, "Unexpected"),
+      TokenType::NewLine => write!(f, "Newline"),
+      TokenType::Str(val) => write!(f, "String({})", val),
+      TokenType::Name(val) => write!(f, "Name({})", val),
+      TokenType::Symbol(val) => write!(f, "Symbol({})", val),
+    }
+  }
+}
+
+impl Display for Token {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", self.token_type)
   }
 }
 

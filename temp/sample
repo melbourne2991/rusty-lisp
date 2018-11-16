@@ -1,0 +1,39 @@
+type User {
+  :age number
+}
+
+let getGoogle = (): String => {
+  (http.get "google.com") | toString
+}
+
+// Compiles to
+(let getGoogle 
+  (fn [] ^String (
+    toString (http.get "google.com"))))
+
+let isAdmin = (): Result<boolean> => {
+  if let Some(result) = (http.get "/api/users") {
+    match result.data.user_role {
+      Admin => Ok(true),
+      _ => Ok(false)
+    }
+  } else (throw "Call failed!")
+}
+
+// Compiles to - hmm might need to think about this one
+(let isAdmin (fn [] ^Result<boolean> (if let ^Some(result) )))
+
+let incrementUserAge = (user: User): User => {
+  (update-in user [:age] inc)
+}
+
+let Root = (): Component => {
+  [:div "Hello world!", [
+      :button { 
+        onClick: incrementUserAge 
+      }
+    ]
+  ]
+}
+
+(ReactDOM.render Root)
