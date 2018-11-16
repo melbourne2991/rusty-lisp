@@ -1,6 +1,6 @@
 use std::io::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
   LeftParen,
   RightParen,
@@ -12,15 +12,29 @@ pub enum TokenType {
   Str(String),
   Name(String),
   Symbol(String),
-  Start,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct TokenMetadata {
   start_line: u16,
   start_col: u16,
   end_line: u16,
   end_col: u16,
+}
+
+#[derive(Debug)]
+pub struct Token {
+  pub token_type: TokenType,
+  pub metadata: TokenMetadata,
+}
+
+impl Clone for Token {
+  fn clone(&self) -> Self {
+    Token {
+      token_type: self.token_type.clone(),
+      metadata: self.metadata,
+    }
+  }
 }
 
 pub struct Lexer<R> {
@@ -178,24 +192,24 @@ impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {
 }
 
 impl<R: Iterator<Item = Result<u8, Error>>> Iterator for Lexer<R> {
-  type Item = (TokenType, TokenMetadata);
+  type Item = Token;
 
-  fn next(&mut self) -> Option<(TokenType, TokenMetadata)> {
+  fn next(&mut self) -> Option<Token> {
     let start_line = self.line;
     let start_col = self.col;
 
-    let token = self.read_token();
+    let token_type = self.read_token();
 
-    match token {
-      Some(token) => Some((
-        token,
-        TokenMetadata {
+    match token_type {
+      Some(token_type) => Some(Token {
+        token_type: token_type,
+        metadata: TokenMetadata {
           start_line: start_line,
           start_col: start_col,
           end_line: self.line,
           end_col: self.col,
         },
-      )),
+      }),
       None => None,
     }
   }

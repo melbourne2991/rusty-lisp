@@ -1,0 +1,104 @@
+use compiler::lexer::{Token, TokenMetadata, TokenType};
+
+#[derive(Clone, Copy)]
+enum NonTerminal {
+  Program,
+  List,
+}
+
+enum ASTNodeType {
+  Terminal(Token),
+  NonTerminal(ASTNonTerminal),
+}
+
+struct ASTNonTerminal {
+  node_type: NonTerminal,
+  children: Vec<usize>,
+}
+
+pub struct Parser {
+  nodes: Vec<ASTNodeType>,
+  token: Option<(TokenType, TokenMetadata)>,
+  state: Vec<usize>,
+}
+
+impl ASTNonTerminal {
+  pub fn new(node_type: NonTerminal) -> ASTNonTerminal {
+    ASTNonTerminal {
+      node_type: node_type,
+      children: vec![],
+    }
+  }
+}
+
+impl Parser {
+  pub fn new() -> Parser {
+    let parser = Parser {
+      nodes: vec![ASTNonTerminal {
+        node_type: NonTerminal::Program,
+        children: vec![],
+      }],
+      token: None,
+      state: vec![],
+    };
+
+    parser
+  }
+
+  pub fn feed(&mut self, token: Token) {
+    if let Some(current_state) = self.get_current_non_terminal() {
+      match current_state {
+        NonTerminal::Program => self.handle_default_state(token),
+        NonTerminal::List => {}
+        _ => {}
+      };
+    }
+  }
+
+  pub fn get_node(&mut self, index: usize) -> Option<&ASTNonTerminal> {
+    self.nodes.get(index)
+  }
+
+  pub fn get_current_state(&mut self) -> Option<&ASTNonTerminal> {
+    if let Some(idx) = self.state.last() {
+      return self.get_node(*idx)
+    }
+
+    None
+  }
+
+  pub fn get_current_non_terminal(&mut self) -> Option<NonTerminal> {
+    if let Some(state) = self.get_current_state() {
+      return Some(state.node_type)
+    }
+
+    None
+  }
+
+  fn new_parser_state(&mut self, non_terminal: ASTNonTerminal) {
+    self.nodes.push(ASTNodeType::NonTerminal(non_terminal));
+    let new_len = self.nodes.len();
+
+    if let Some(current) = self.get_current_state() {
+      current
+        .children
+        .push(new_len);
+    }
+
+    self.state.push(new_len);
+  }
+
+
+  fn handle_default_state(&mut self, token: Token) {
+    match token.token_type {
+      TokenType::Whitespace => {}
+      TokenType::LeftParen => self.new_parser_state(ASTNonTerminal {
+        node_type: NonTerminal::List,
+        children: vec![ASTNodeType::Terminal(token)],
+      }),
+      _ => panic!("Invalid token"),
+    }
+  }
+
+  fn handle_list_state(&mut self, token: Token) {}
+}

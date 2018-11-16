@@ -24,6 +24,11 @@ fn read_file(filename: &String) {
     let lexer = compiler::lexer::Lexer::new(fbytes.by_ref());
     let mut parser = compiler::parser::Parser::new();
 
+    for token in lexer {
+        println!("In!");
+        parser.feed(token)
+    }
+
     // for (token, metadata) in lexer {
     //     match token {
     //         lexer::TokenType::Unexpected => {
