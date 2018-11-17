@@ -1,34 +1,21 @@
 use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-
 mod compiler;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 1 {
-        let filename = &args[1];
-        read_file(filename);
+        let file_a = &args[1];
+        let file_b = &args[2];
+
+        read_files(vec![file_a, file_b]);
     } else {
-        println!("No file provided");
+        println!("No file provided!");
     }
 }
 
-fn read_file(filename: &String) {
-    println!("In file {}", filename);
+fn read_files(filenames: Vec<&String>) {
+    let ftree = compiler::file_tree(filenames);
 
-    let f = File::open(filename).expect("file not found!");
-
-    let mut fbytes = f.bytes();
-    let lexer = compiler::lexer::Lexer::new(fbytes.by_ref());
-    let mut parser = compiler::parser::Parser::new();
-
-    for token in lexer {
-        parser.feed(token)
-    }
-
-    let parse_tree = parser.tree;
-
-    println!("{}", parse_tree)
+    print!("{}", ftree)
 }

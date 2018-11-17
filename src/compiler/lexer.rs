@@ -102,9 +102,13 @@ impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {
 
     self.consume_current();
 
+    let mut alpha_char_count = 0;
+
     while let Some(c) = self.current_byte() {
       match c {
         c if c.is_ascii_alphabetic() => {
+          alpha_char_count = alpha_char_count + 1;
+
           name.push(c);
           self.consume_current();
         }
@@ -112,7 +116,11 @@ impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {
       }
     }
 
-    TokenType::Symbol(name)
+    if alpha_char_count > 0 {
+      return TokenType::Symbol(name);
+    }
+
+    TokenType::Unexpected
   }
 
   pub fn read_str(&mut self) -> TokenType {

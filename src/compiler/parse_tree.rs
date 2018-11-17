@@ -8,10 +8,6 @@ pub enum NonTerminalType {
   List,
 }
 
-pub struct ListData {
-  callee: Token,
-}
-
 pub enum PTNodeType {
   Terminal(Token),
   NonTerminal(NonTerminalType),
@@ -131,17 +127,23 @@ impl Display for NonTerminalType {
 
 impl Display for PTree {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "PTree: {{\n");
+    write!(f, "PTree:\n");
 
     self.traverse_node(0, 1, &mut |node, depth| match node {
       PTNodeType::NonTerminal(non_terminal_type) => {
-        write!(f, "{:width$}-{}\n", "", non_terminal_type, width = depth);
+        write!(
+          f,
+          "{:width$}-{}\n",
+          "",
+          non_terminal_type,
+          width = depth + 2
+        );
       }
       PTNodeType::Terminal(token) => {
-        write!(f, "{:width$}-{}\n", "", token, width = depth);
+        write!(f, "{:width$}-{}\n", "", token, width = depth + 2);
       }
     });
 
-    write!(f, "}}")
+    write!(f, "")
   }
 }

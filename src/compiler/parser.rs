@@ -1,6 +1,9 @@
 use compiler::errors::UnexpectedTokenError;
-use compiler::lexer::{Token, TokenType};
+use compiler::lexer::{Lexer, Token, TokenType};
 use compiler::parse_tree::{NonTerminalType, PTNode, PTNodeType, PTNonTerminal, PTree};
+use std::fs::File;
+use std::io::prelude::*;
+use std::process;
 
 pub struct Parser {
   pub tree: PTree,
@@ -44,7 +47,8 @@ impl Parser {
         self.add_terminal_to_current(token);
       }
       ParserAction::UnexpectedToken(token) => {
-        UnexpectedTokenError::new(token.token_type);
+        print!("Error: {}\n", UnexpectedTokenError::new(token.token_type));
+        process::exit(1);
       }
       ParserAction::BeginNonTerminal(non_terminal_type, token) => {
         self.new_parser_state(PTNonTerminal::new(
@@ -92,6 +96,7 @@ impl Parser {
 
   fn handle_default_state(&mut self, token: Token) -> ParserAction {
     match token.token_type {
+      TokenType::NewLine => ParserAction::None,
       TokenType::Whitespace => ParserAction::None,
       TokenType::LeftParen => ParserAction::BeginNonTerminal(NonTerminalType::List, token),
       _ => ParserAction::UnexpectedToken(token),
@@ -100,11 +105,30 @@ impl Parser {
 
   fn handle_list_state(&mut self, token: Token) -> ParserAction {
     match token.token_type {
+      TokenType::NewLine => ParserAction::None,
       TokenType::Whitespace => ParserAction::None,
+      TokenType::Symbol(_) => ParserAction::Terminal(token),
       TokenType::Name(_) => ParserAction::Terminal(token),
       TokenType::LeftParen => ParserAction::BeginNonTerminal(NonTerminalType::List, token),
       TokenType::RightParen => ParserAction::EndNonTerminal(token),
       _ => ParserAction::UnexpectedToken(token),
     }
   }
+}
+
+pub fn parse_file(filename: &String) -> PTree {
+  let f = File::open(filename).expect("file not found!");
+
+  let mut fbytes = f.bytes();
+  let mut parser = Parser::new();
+
+  let lexer = Lexer::new(fbytes.by_ref());
+
+  for token in lexer {
+    parser.feed(token)
+  }
+
+  let parse_tree = parser.tree;
+
+  parse_tree
 }
