@@ -28,5 +28,7 @@ fn read_file(filename: &String) {
         parser.feed(token)
     }
 
-    println!("{}", parser.tree)
+    let parse_tree = parser.tree;
+
+    println!("{}", parse_tree)
 }

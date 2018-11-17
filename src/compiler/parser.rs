@@ -1,16 +1,25 @@
-use compiler::ast_tree::{ASTNode, ASTNodeType, ASTNonTerminal, ASTTree, NonTerminalType};
-use compiler::lexer::{Token, TokenMetadata, TokenType};
+use compiler::errors::UnexpectedTokenError;
+use compiler::lexer::{Token, TokenType};
+use compiler::parse_tree::{NonTerminalType, PTNode, PTNodeType, PTNonTerminal, PTree};
 
 pub struct Parser {
-  pub tree: ASTTree,
+  pub tree: PTree,
   state: Vec<usize>,
+}
+
+pub enum ParserAction {
+  None,
+  UnexpectedToken(Token),
+  BeginNonTerminal(NonTerminalType, Token),
+  EndNonTerminal(Token),
+  Terminal(Token),
 }
 
 impl Parser {
   pub fn new() -> Parser {
-    let mut tree = ASTTree::new();
+    let mut tree = PTree::new();
 
-    let root_ref = tree.add_node(&ASTNode::NonTerminal(ASTNonTerminal::new(
+    let root_ref = tree.add_node(&PTNode::NonTerminal(PTNonTerminal::new(
       NonTerminalType::Program,
       None,
     )));
@@ -24,20 +33,48 @@ impl Parser {
   }
 
   pub fn feed(&mut self, token: Token) {
-    match self.current_state_type() {
+    let parser_action = match self.current_state_type() {
       NonTerminalType::Program => self.handle_default_state(token),
-      NonTerminalType::List => {}
+      NonTerminalType::List => self.handle_list_state(token),
+    };
+
+    match parser_action {
+      ParserAction::None => {}
+      ParserAction::Terminal(token) => {
+        self.add_terminal_to_current(token);
+      }
+      ParserAction::UnexpectedToken(token) => {
+        UnexpectedTokenError::new(token.token_type);
+      }
+      ParserAction::BeginNonTerminal(non_terminal_type, token) => {
+        self.new_parser_state(PTNonTerminal::new(
+          non_terminal_type,
+          Some(vec![PTNode::Terminal(token)]),
+        ));
+      }
+      ParserAction::EndNonTerminal(token) => {
+        self.add_terminal_to_current(token);
+        self.state.pop();
+      }
     };
   }
 
-  fn new_parser_state(&mut self, non_terminal: ASTNonTerminal) {
+  fn new_parser_state(&mut self, non_terminal: PTNonTerminal) {
     let current_state_ref = self.current_state_ref();
 
     let node_ref = self
       .tree
-      .add_to_node(current_state_ref, ASTNode::NonTerminal(non_terminal));
+      .add_to_node(current_state_ref, PTNode::NonTerminal(non_terminal));
 
     self.state.push(node_ref);
+  }
+
+  fn add_terminal_to_current(&mut self, terminal: Token) {
+    let current_state_ref = self.current_state_ref();
+
+    self
+      .tree
+      .add_to_node(current_state_ref, PTNode::Terminal(terminal));
   }
 
   fn current_state_ref(&self) -> usize {
@@ -48,21 +85,26 @@ impl Parser {
     let current_state_ref = self.current_state_ref();
 
     match self.tree.get_node_type(current_state_ref) {
-      ASTNodeType::NonTerminal(node_type) => node_type,
+      PTNodeType::NonTerminal(node_type) => node_type,
       _ => panic!("Current state is not a NonTerminal"),
     }
   }
 
-  fn handle_default_state(&mut self, token: Token) {
+  fn handle_default_state(&mut self, token: Token) -> ParserAction {
     match token.token_type {
-      TokenType::Whitespace => {}
-      TokenType::LeftParen => self.new_parser_state(ASTNonTerminal::new(
-        NonTerminalType::List,
-        Some(vec![ASTNode::Terminal(token)]),
-      )),
-      _ => panic!("Invalid token"),
+      TokenType::Whitespace => ParserAction::None,
+      TokenType::LeftParen => ParserAction::BeginNonTerminal(NonTerminalType::List, token),
+      _ => ParserAction::UnexpectedToken(token),
     }
   }
 
-  fn handle_list_state(&mut self, token: Token) {}
+  fn handle_list_state(&mut self, token: Token) -> ParserAction {
+    match token.token_type {
+      TokenType::Whitespace => ParserAction::None,
+      TokenType::Name(_) => ParserAction::Terminal(token),
+      TokenType::LeftParen => ParserAction::BeginNonTerminal(NonTerminalType::List, token),
+      TokenType::RightParen => ParserAction::EndNonTerminal(token),
+      _ => ParserAction::UnexpectedToken(token),
+    }
+  }
 }
