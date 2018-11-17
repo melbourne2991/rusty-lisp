@@ -3,8 +3,6 @@ use compiler::lexer::{Token, TokenMetadata, TokenType};
 
 pub struct Parser {
   pub tree: ASTTree,
-
-  token: Option<(TokenType, TokenMetadata)>,
   state: Vec<usize>,
 }
 
@@ -19,7 +17,6 @@ impl Parser {
 
     let parser = Parser {
       tree,
-      token: None,
       state: vec![root_ref],
     };
 
