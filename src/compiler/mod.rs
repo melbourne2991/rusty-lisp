@@ -4,10 +4,11 @@ use std::thread;
 
 mod errors;
 mod file_tree;
-pub mod lexer;
 mod parse_tree;
 
+pub mod lexer;
 pub mod parser;
+pub mod source_ast;
 
 pub fn parse_tree_from_file(filename: String) -> (String, parse_tree::PTree) {
   let f = File::open(&filename).expect("file not found!");

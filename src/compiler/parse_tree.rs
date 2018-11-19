@@ -1,10 +1,11 @@
 use compiler::lexer::{Token, TokenType};
 use std::fmt;
 use std::fmt::Display;
+use std::iter::Map;
 
 #[derive(Clone, Copy, Debug)]
 pub enum NonTerminalType {
-  Program,
+  Root,
   List,
 }
 
@@ -18,13 +19,13 @@ pub enum PTNode {
   NonTerminal(PTNonTerminal),
 }
 
-enum PTNodeInternal {
+pub enum PTNodeInternal {
   Terminal(Token),
   NonTerminal(PTNonTerminalInternal),
 }
 
-struct PTNonTerminalInternal {
-  node_type: NonTerminalType,
+pub struct PTNonTerminalInternal {
+  pub node_type: NonTerminalType,
   children: Vec<usize>,
 }
 
@@ -47,13 +48,52 @@ impl PTNonTerminal {
 }
 
 impl PTree {
+  pub const ROOT_NODE_REF: usize = 0;
+
   pub fn new() -> PTree {
     let nodes = vec![];
     PTree { nodes: nodes }
   }
 
+  pub fn get_node(&self, node_ref: usize) -> &PTNodeInternal {
+    self.nodes.get(node_ref).expect("Node not found")
+  }
+
+  pub fn get_child(&self, node: &PTNonTerminalInternal, child_ref: usize) -> &PTNodeInternal {
+    self.get_node(
+      *node
+        .children
+        .get(child_ref)
+        .expect("Node does not have child"),
+    )
+  }
+
+  pub fn get_non_terminal(&self, node_ref: usize) -> &PTNonTerminalInternal {
+    if let PTNodeInternal::NonTerminal(non_terminal) = self.get_node(node_ref) {
+      return non_terminal;
+    } else {
+      panic!("Node was not a non_terminal");
+    }
+  }
+
+  pub fn get_root_node(&self) -> &PTNonTerminalInternal {
+    self.get_non_terminal(0)
+  }
+
+  pub fn children_iter(&self, node_ref: usize) -> impl Iterator<Item = &PTNodeInternal> {
+    let node_children = &self.get_non_terminal(node_ref).children;
+
+    let mapped_iter = Box::new(
+      node_children
+        .into_iter()
+        .map(move |child_ref| self.get_node(*child_ref)),
+    );
+
+    mapped_iter
+  }
+
   pub fn get_node_type(&mut self, node_ref: usize) -> PTNodeType {
-    match self.nodes.get(node_ref).expect("Node not found") {
+    match self.get_node(node_ref) {
       PTNodeInternal::Terminal(token) => PTNodeType::Terminal(token.clone()),
       PTNodeInternal::NonTerminal(non_terminal) => PTNodeType::NonTerminal(non_terminal.node_type),
     }
@@ -116,10 +156,27 @@ impl PTree {
   }
 }
 
+// pub struct PTreeChildIterator<'a> {
+//   ptree: &'a PTree,
+//   non_terminal_iter: std::vec::IntoIter<usize>,
+// }
+
+// impl<'a> Iterator for PTreeChildIterator<'a> {
+//   type Item = &'a PTNodeInternal;
+
+//   fn next(&mut self) -> Option<&'a PTNodeInternal> {
+//     if let Some(node_ref) = self.non_terminal_iter.next() {
+//       return Some(self.ptree.get_node(node_ref));
+//     }
+
+//     None
+//   }
+// }
+
 impl Display for NonTerminalType {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
-      NonTerminalType::Program => write!(f, "Program"),
+      NonTerminalType::Root => write!(f, "Root"),
       NonTerminalType::List => write!(f, "List"),
     }
   }

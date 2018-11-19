@@ -2,7 +2,7 @@ use compiler::lexer::{Token, TokenMetadata, TokenType};
 
 #[derive(Clone, Copy)]
 enum NonTerminal {
-  Program,
+  Root,
   List,
 }
 
@@ -35,7 +35,7 @@ impl Parser {
   pub fn new() -> Parser {
     let parser = Parser {
       nodes: vec![PTNonTerminal {
-        node_type: NonTerminal::Program,
+        node_type: NonTerminal::Root,
         children: vec![],
       }],
       token: None,
@@ -48,7 +48,7 @@ impl Parser {
   pub fn feed(&mut self, token: Token) {
     if let Some(current_state) = self.get_current_non_terminal() {
       match current_state {
-        NonTerminal::Program => self.handle_default_state(token),
+        NonTerminal::Root => self.handle_default_state(token),
         NonTerminal::List => {}
         _ => {}
       };

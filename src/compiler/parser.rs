@@ -23,7 +23,7 @@ impl Parser {
     let mut tree = PTree::new();
 
     let root_ref = tree.add_node(&PTNode::NonTerminal(PTNonTerminal::new(
-      NonTerminalType::Program,
+      NonTerminalType::Root,
       None,
     )));
 
@@ -37,7 +37,7 @@ impl Parser {
 
   pub fn feed(&mut self, token: Token) {
     let parser_action = match self.current_state_type() {
-      NonTerminalType::Program => self.handle_default_state(token),
+      NonTerminalType::Root => self.handle_default_state(token),
       NonTerminalType::List => self.handle_list_state(token),
     };
 

@@ -2,7 +2,7 @@ use compiler::lexer::Token;
 
 #[derive(Clone, Copy)]
 pub enum NonTerminalType {
-  Program,
+  Root,
   List,
 }
 

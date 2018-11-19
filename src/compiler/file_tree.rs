@@ -32,3 +32,24 @@ impl Display for FTree {
     write!(f, "")
   }
 }
+
+impl IntoIterator for FTree {
+  type Item = (String, PTree);
+  type IntoIter = std::collections::hash_map::IntoIter<String, PTree>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.parse_trees.into_iter()
+  }
+}
+
+// pub struct FTreeIterator {
+//   ftree: FTree
+// }
+
+// impl Iterator for FTreeIterator {
+//   type Item = (String, PTree);
+
+//   fn next(&mut self) -> Option<(String, PTree)> {
+
+//   }
+// }

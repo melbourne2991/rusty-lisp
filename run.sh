@@ -1,0 +1,1 @@
+cargo run temp/test.txt temp/test2.txt
