@@ -1,6 +1,8 @@
 use compiler::file_tree::FTree;
 use compiler::lexer::{Token, TokenType};
-use compiler::parse_tree::{NonTerminalType, PTNodeInternal, PTNodeType, PTree};
+use compiler::parse_tree::{NonTerminalType, PTDynamicNode, PTNodeType, PTParentNode, PTree};
+use std::fmt;
+use std::fmt::Display;
 
 pub enum NodeType {
   AST,
@@ -24,6 +26,7 @@ pub enum ExpressionArg {
   Expression(ExpressionNode),
   Symbol(SymbolNode),
   Str(StringNode),
+  None,
 }
 
 pub enum ASTBody {
@@ -64,18 +67,18 @@ pub struct FileNode {
   pub body: Vec<FileBody>,
 }
 
-struct AST {
+pub struct AST {
   pub node_type: NodeType,
   pub body: Vec<ASTBody>,
 }
 
 impl AST {
   pub fn from(file_tree: FTree) -> AST {
-    let body_nodes = file_tree.into_iter().map(map_file);
+    let body_nodes = file_tree.into_iter().map(map_file).collect();
 
     AST {
       node_type: NodeType::AST,
-      body: vec![],
+      body: body_nodes,
     }
   }
 }
@@ -89,36 +92,81 @@ fn map_file((filename, parse_tree): (String, PTree)) -> ASTBody {
 }
 
 fn map_file_body(parse_tree: PTree) -> Vec<FileBody> {
-  let root_node = parse_tree.get_root_node();
+  let root_node = parse_tree.get_parent_node(PTree::ROOT_NODE_REF);
 
-  parse_tree
-    .children_iter(PTree::ROOT_NODE_REF)
+  root_node
+    .children_iter()
     .map(|child| match child {
-      PTNodeInternal::Terminal(token) => panic!("Invalid"),
-      PTNodeInternal::NonTerminal(non_terminal) => match non_terminal.node_type {
-        NonTerminalType::List => {
-          let callee_node = parse_tree.get_child(non_terminal, 0);
-
-          // FileBody::Expression(ExpressionNode {
-          //   node_type: NodeType::Expression,
-          //   callee: map_ident(callee_node),
-          //   args:
-          // })
-        }
+      PTDynamicNode::Terminal(_token) => panic!("Invalid"),
+      PTDynamicNode::NonTerminal(non_terminal) => match non_terminal.internal.node_type {
+        NonTerminalType::List => FileBody::Expression(map_expression(non_terminal)),
         _ => panic!("Invalid"),
       },
-    });
-
-  vec![]
+    }).collect()
 }
 
-// fn map_ident(node: &PTNodeInternal) -> IdentNode {
-//   match node {
-//     PTNodeInternal::Terminal(token) => match token.token_type {
-//       TokenType::Name(name) => IdentNode {
-//         node_type: NodeType::Ident,
-//         value: name,
-//       },
-//     },
-//   }
-// }
+fn map_ident(token: Token) -> IdentNode {
+  match token.token_type {
+    TokenType::Name(name) => IdentNode {
+      node_type: NodeType::Ident,
+      value: name,
+    },
+    _ => panic!("Invalid: {}", token.token_type),
+  }
+}
+
+fn map_arg(node: &PTDynamicNode) -> ExpressionArg {
+  match node {
+    PTDynamicNode::Terminal(token) => match token.clone().token_type {
+      TokenType::Str(value) => ExpressionArg::Str(StringNode {
+        node_type: NodeType::Str,
+        value,
+      }),
+      TokenType::Symbol(value) => ExpressionArg::Symbol(SymbolNode {
+        node_type: NodeType::Symbol,
+        value,
+      }),
+      TokenType::LeftParen => ExpressionArg::None,
+      TokenType::RightParen => ExpressionArg::None,
+      _ => panic!("Invalid: {}", token.token_type),
+    },
+    PTDynamicNode::NonTerminal(non_terminal) => match non_terminal.internal.node_type {
+      NonTerminalType::List => ExpressionArg::Expression(map_expression(*non_terminal)),
+      _ => panic!("Invalid!"),
+    },
+  }
+}
+
+fn map_expression<'a>(non_terminal: PTParentNode<'a>) -> ExpressionNode {
+  let children: Box<Vec<PTDynamicNode>> = Box::new(non_terminal.children_iter().collect());
+
+  let first = children.get(1).expect("Unexpected error");
+  let token = first.as_terminal();
+
+  let arg_tokens: &[PTDynamicNode] = &children[2..children.len()];
+  let arg_nodes = arg_tokens.into_iter().map(|node| map_arg(node)).collect();
+
+  ExpressionNode {
+    node_type: NodeType::Expression,
+    callee: map_ident(token.clone()),
+    args: arg_nodes,
+  }
+}
+
+impl Display for AST {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "AST:\n[");
+
+    self.body.iter().for_each(|node| {
+      write!(f, "{:width$}-{}\n", "", node, width = 1);
+    });
+
+    write!(f, "]")
+  }
+}
+
+impl Display for ASTBody {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", self)
+  }
+}

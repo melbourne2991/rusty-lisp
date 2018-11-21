@@ -5,10 +5,10 @@ use std::thread;
 mod errors;
 mod file_tree;
 mod parse_tree;
+mod source_ast;
 
 pub mod lexer;
 pub mod parser;
-pub mod source_ast;
 
 pub fn parse_tree_from_file(filename: String) -> (String, parse_tree::PTree) {
   let f = File::open(&filename).expect("file not found!");
@@ -47,4 +47,8 @@ pub fn file_tree(filenames: Vec<&String>) -> file_tree::FTree {
   }
 
   file_tree::FTree::new(results)
+}
+
+pub fn parse(filenames: Vec<&String>) -> source_ast::AST {
+  source_ast::AST::from(file_tree(filenames))
 }

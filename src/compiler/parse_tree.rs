@@ -24,6 +24,27 @@ pub enum PTNodeInternal {
   NonTerminal(PTNonTerminalInternal),
 }
 
+pub enum PTDynamicNode<'a> {
+  Terminal(Token),
+  NonTerminal(PTParentNode<'a>),
+}
+
+impl<'a> PTDynamicNode<'a> {
+  pub fn as_terminal(&self) -> Token {
+    match &self {
+      PTDynamicNode::Terminal(token) => token.clone(),
+      _ => panic!("Unexpected error"),
+    }
+  }
+
+  pub fn as_non_terminal(&self) -> PTParentNode<'a> {
+    match self {
+      PTDynamicNode::NonTerminal(non_terminal) => *non_terminal,
+      _ => panic!("Unexpected error"),
+    }
+  }
+}
+
 pub struct PTNonTerminalInternal {
   pub node_type: NonTerminalType,
   children: Vec<usize>,
@@ -36,6 +57,27 @@ pub struct PTNonTerminal {
 
 pub struct PTree {
   nodes: Vec<PTNodeInternal>,
+}
+
+#[derive(Clone, Copy)]
+pub struct PTParentNode<'a> {
+  pub internal: &'a PTNonTerminalInternal,
+  tree: &'a PTree,
+}
+
+impl<'a> PTParentNode<'a> {
+  pub fn children_iter(self) -> impl Iterator<Item = PTDynamicNode<'a>> {
+    let children = &self.internal.children;
+
+    children
+      .into_iter()
+      .map(move |child_ref| match self.tree.get_node(*child_ref) {
+        PTNodeInternal::Terminal(token) => PTDynamicNode::Terminal(token.clone()),
+        PTNodeInternal::NonTerminal(_non_terminal) => {
+          PTDynamicNode::NonTerminal(self.tree.get_parent_node(*child_ref))
+        }
+      })
+  }
 }
 
 impl PTNonTerminal {
@@ -59,13 +101,19 @@ impl PTree {
     self.nodes.get(node_ref).expect("Node not found")
   }
 
-  pub fn get_child(&self, node: &PTNonTerminalInternal, child_ref: usize) -> &PTNodeInternal {
-    self.get_node(
-      *node
-        .children
-        .get(child_ref)
-        .expect("Node does not have child"),
-    )
+  pub fn get_parent_node<'a>(&'a self, node_ref: usize) -> PTParentNode<'a> {
+    PTParentNode {
+      internal: self.get_non_terminal(node_ref),
+      tree: self,
+    }
+  }
+
+  pub fn get_terminal(&self, node_ref: usize) -> &Token {
+    if let PTNodeInternal::Terminal(token) = self.get_node(node_ref) {
+      return token;
+    } else {
+      panic!("Node was not a token");
+    }
   }
 
   pub fn get_non_terminal(&self, node_ref: usize) -> &PTNonTerminalInternal {
@@ -74,22 +122,6 @@ impl PTree {
     } else {
       panic!("Node was not a non_terminal");
     }
-  }
-
-  pub fn get_root_node(&self) -> &PTNonTerminalInternal {
-    self.get_non_terminal(0)
-  }
-
-  pub fn children_iter(&self, node_ref: usize) -> impl Iterator<Item = &PTNodeInternal> {
-    let node_children = &self.get_non_terminal(node_ref).children;
-
-    let mapped_iter = Box::new(
-      node_children
-        .into_iter()
-        .map(move |child_ref| self.get_node(*child_ref)),
-    );
-
-    mapped_iter
   }
 
   pub fn get_node_type(&mut self, node_ref: usize) -> PTNodeType {

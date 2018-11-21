@@ -15,7 +15,6 @@ fn main() {
 }
 
 fn read_files(filenames: Vec<&String>) {
-    let ftree = compiler::file_tree(filenames);
-
-    print!("{}", ftree)
+    let ast = compiler::parse(filenames);
+    print!("{}", ast)
 }
