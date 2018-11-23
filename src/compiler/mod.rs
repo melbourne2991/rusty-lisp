@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::thread;
 
 mod errors;
@@ -13,10 +14,10 @@ pub mod parser;
 pub fn parse_tree_from_file(filename: String) -> (String, parse_tree::PTree) {
   let f = File::open(&filename).expect("file not found!");
 
-  let mut fbytes = f.bytes();
   let mut parser = parser::Parser::new();
 
-  let lexer = lexer::Lexer::new(fbytes.by_ref());
+  let byte_iter = BufReader::with_capacity(10000, f).bytes();
+  let lexer = lexer::Lexer::new(byte_iter);
 
   for token in lexer {
     parser.feed(token)

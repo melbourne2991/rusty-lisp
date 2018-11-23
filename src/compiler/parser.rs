@@ -107,6 +107,7 @@ impl Parser {
       TokenType::Whitespace => ParserAction::None,
       TokenType::Symbol(_) => ParserAction::Terminal(token),
       TokenType::Name(_) => ParserAction::Terminal(token),
+      TokenType::Str(_) => ParserAction::Terminal(token),
       TokenType::LeftParen => ParserAction::BeginNonTerminal(NonTerminalType::List, token),
       TokenType::RightParen => ParserAction::EndNonTerminal(token),
       _ => ParserAction::UnexpectedToken(token),

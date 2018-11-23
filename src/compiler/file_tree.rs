@@ -1,7 +1,5 @@
 use compiler::parse_tree::PTree;
 use std::collections::HashMap;
-use std::fmt;
-use std::fmt::Display;
 
 pub struct FTree {
   pub parse_trees: HashMap<String, PTree>,
@@ -11,8 +9,8 @@ impl FTree {
   pub fn new(results: Vec<(String, PTree)>) -> FTree {
     let mut parse_trees = HashMap::new();
 
-    for boxed_result in results {
-      let (filename, result) = boxed_result;
+    for parse_tree_with_filename in results {
+      let (filename, result) = parse_tree_with_filename;
       parse_trees.insert(filename, result);
     }
 

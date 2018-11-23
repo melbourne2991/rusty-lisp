@@ -170,24 +170,4 @@ impl PTree {
       panic!("Node is not a NonTerminal");
     }
   }
-
-  fn traverse_node<F>(&self, node_ref: usize, depth: usize, callback: &mut F)
-  where
-    F: FnMut(PTNodeType, usize) -> (),
-  {
-    if let Some(node) = self.nodes.get(node_ref) {
-      match node {
-        PTNodeInternal::NonTerminal(non_terminal) => {
-          callback(PTNodeType::NonTerminal(non_terminal.node_type), depth);
-
-          for child_ref in &non_terminal.children {
-            self.traverse_node(*child_ref, depth + 1, callback)
-          }
-        }
-        PTNodeInternal::Terminal(token) => callback(PTNodeType::Terminal(token.clone()), depth + 1),
-      }
-    } else {
-      print!("Node not found -> {:?}", node_ref);
-    }
-  }
 }

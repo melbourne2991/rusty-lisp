@@ -14,14 +14,15 @@ pub enum TokenType {
   Str(String),
   Name(String),
   Symbol(String),
+  Number(String),
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct TokenMetadata {
-  start_line: u16,
-  start_col: u16,
-  end_line: u16,
-  end_col: u16,
+  start_line: usize,
+  start_col: usize,
+  end_line: usize,
+  end_col: usize,
 }
 
 #[derive(Debug)]
@@ -52,6 +53,7 @@ impl Display for TokenType {
       TokenType::Str(val) => write!(f, "String({})", val),
       TokenType::Name(val) => write!(f, "Name({})", val),
       TokenType::Symbol(val) => write!(f, "Symbol({})", val),
+      TokenType::Number(val) => write!(f, "Number({})", val),
     }
   }
 }
@@ -59,8 +61,8 @@ impl Display for TokenType {
 pub struct Lexer<R> {
   chars: R,
   current: Option<char>,
-  line: u16,
-  col: u16,
+  line: usize,
+  col: usize,
 }
 
 impl<R: Iterator<Item = Result<u8, Error>>> Lexer<R> {

@@ -1,1 +1,1 @@
-cargo run temp/test.txt temp/test2.txt
+cargo run temp/test.txt temp/test2.txt temp/test3.txt temp/test4.txt
