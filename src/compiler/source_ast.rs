@@ -1,9 +1,8 @@
 use compiler::file_tree::FTree;
 use compiler::lexer::{Token, TokenType};
-use compiler::parse_tree::{NonTerminalType, PTDynamicNode, PTNodeType, PTParentNode, PTree};
-use std::fmt;
-use std::fmt::Display;
+use compiler::parse_tree::{NonTerminalType, PTDynamicNode, PTParentNode, PTree};
 
+#[derive(Debug)]
 pub enum NodeType {
   AST,
   File,
@@ -14,14 +13,17 @@ pub enum NodeType {
   Str,
 }
 
+#[derive(Debug)]
 pub enum FileBody {
   Expression(ExpressionNode),
 }
 
+#[derive(Debug)]
 pub enum DeclarationBody {
   Expression(ExpressionNode),
 }
 
+#[derive(Debug)]
 pub enum ExpressionArg {
   Expression(ExpressionNode),
   Symbol(SymbolNode),
@@ -29,31 +31,37 @@ pub enum ExpressionArg {
   None,
 }
 
+#[derive(Debug)]
 pub enum ASTBody {
   File(FileNode),
 }
 
+#[derive(Debug)]
 pub struct StringNode {
   pub node_type: NodeType,
   pub value: String,
 }
 
+#[derive(Debug)]
 pub struct SymbolNode {
   pub node_type: NodeType,
   pub value: String,
 }
 
+#[derive(Debug)]
 pub struct IdentNode {
   pub node_type: NodeType,
   pub value: String,
 }
 
+#[derive(Debug)]
 pub struct ExpressionNode {
   pub node_type: NodeType,
   pub callee: IdentNode,
   pub args: Vec<ExpressionArg>,
 }
 
+#[derive(Debug)]
 pub struct DeclarationNode {
   pub node_type: NodeType,
   pub name: IdentNode,
@@ -61,12 +69,14 @@ pub struct DeclarationNode {
   pub body: Vec<DeclarationBody>,
 }
 
+#[derive(Debug)]
 pub struct FileNode {
   pub node_type: NodeType,
   pub filename: String,
   pub body: Vec<FileBody>,
 }
 
+#[derive(Debug)]
 pub struct AST {
   pub node_type: NodeType,
   pub body: Vec<ASTBody>,
@@ -150,23 +160,5 @@ fn map_expression<'a>(non_terminal: PTParentNode<'a>) -> ExpressionNode {
     node_type: NodeType::Expression,
     callee: map_ident(token.clone()),
     args: arg_nodes,
-  }
-}
-
-impl Display for AST {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "AST:\n[");
-
-    self.body.iter().for_each(|node| {
-      write!(f, "{:width$}-{}\n", "", node, width = 1);
-    });
-
-    write!(f, "]")
-  }
-}
-
-impl Display for ASTBody {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}", self)
   }
 }

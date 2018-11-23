@@ -20,19 +20,6 @@ impl FTree {
   }
 }
 
-impl Display for FTree {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "FTree:\n");
-
-    for (filename, ptree) in &self.parse_trees {
-      write!(f, "{:width$}-File:{}\n", "", filename, width = 1);
-      write!(f, "{:width$}{}\n", "", ptree, width = 2);
-    }
-
-    write!(f, "")
-  }
-}
-
 impl IntoIterator for FTree {
   type Item = (String, PTree);
   type IntoIter = std::collections::hash_map::IntoIter<String, PTree>;
@@ -41,15 +28,3 @@ impl IntoIterator for FTree {
     self.parse_trees.into_iter()
   }
 }
-
-// pub struct FTreeIterator {
-//   ftree: FTree
-// }
-
-// impl Iterator for FTreeIterator {
-//   type Item = (String, PTree);
-
-//   fn next(&mut self) -> Option<(String, PTree)> {
-
-//   }
-// }

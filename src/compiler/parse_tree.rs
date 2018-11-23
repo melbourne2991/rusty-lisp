@@ -1,7 +1,4 @@
-use compiler::lexer::{Token, TokenType};
-use std::fmt;
-use std::fmt::Display;
-use std::iter::Map;
+use compiler::lexer::Token;
 
 #[derive(Clone, Copy, Debug)]
 pub enum NonTerminalType {
@@ -9,21 +6,25 @@ pub enum NonTerminalType {
   List,
 }
 
+#[derive(Debug)]
 pub enum PTNodeType {
   Terminal(Token),
   NonTerminal(NonTerminalType),
 }
 
+#[derive(Debug)]
 pub enum PTNode {
   Terminal(Token),
   NonTerminal(PTNonTerminal),
 }
 
+#[derive(Debug)]
 pub enum PTNodeInternal {
   Terminal(Token),
   NonTerminal(PTNonTerminalInternal),
 }
 
+#[derive(Debug)]
 pub enum PTDynamicNode<'a> {
   Terminal(Token),
   NonTerminal(PTParentNode<'a>),
@@ -45,21 +46,24 @@ impl<'a> PTDynamicNode<'a> {
   }
 }
 
+#[derive(Debug)]
 pub struct PTNonTerminalInternal {
   pub node_type: NonTerminalType,
   children: Vec<usize>,
 }
 
+#[derive(Debug)]
 pub struct PTNonTerminal {
   node_type: NonTerminalType,
   children: Option<Vec<PTNode>>,
 }
 
+#[derive(Debug)]
 pub struct PTree {
   nodes: Vec<PTNodeInternal>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct PTParentNode<'a> {
   pub internal: &'a PTNonTerminalInternal,
   tree: &'a PTree,
@@ -185,54 +189,5 @@ impl PTree {
     } else {
       print!("Node not found -> {:?}", node_ref);
     }
-  }
-}
-
-// pub struct PTreeChildIterator<'a> {
-//   ptree: &'a PTree,
-//   non_terminal_iter: std::vec::IntoIter<usize>,
-// }
-
-// impl<'a> Iterator for PTreeChildIterator<'a> {
-//   type Item = &'a PTNodeInternal;
-
-//   fn next(&mut self) -> Option<&'a PTNodeInternal> {
-//     if let Some(node_ref) = self.non_terminal_iter.next() {
-//       return Some(self.ptree.get_node(node_ref));
-//     }
-
-//     None
-//   }
-// }
-
-impl Display for NonTerminalType {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match *self {
-      NonTerminalType::Root => write!(f, "Root"),
-      NonTerminalType::List => write!(f, "List"),
-    }
-  }
-}
-
-impl Display for PTree {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "PTree:\n");
-
-    self.traverse_node(0, 1, &mut |node, depth| match node {
-      PTNodeType::NonTerminal(non_terminal_type) => {
-        write!(
-          f,
-          "{:width$}-{}\n",
-          "",
-          non_terminal_type,
-          width = depth + 2
-        );
-      }
-      PTNodeType::Terminal(token) => {
-        write!(f, "{:width$}-{}\n", "", token, width = depth + 2);
-      }
-    });
-
-    write!(f, "")
   }
 }

@@ -56,12 +56,6 @@ impl Display for TokenType {
   }
 }
 
-impl Display for Token {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}", self.token_type)
-  }
-}
-
 pub struct Lexer<R> {
   chars: R,
   current: Option<char>,

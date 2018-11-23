@@ -16,5 +16,5 @@ fn main() {
 
 fn read_files(filenames: Vec<&String>) {
     let ast = compiler::parse(filenames);
-    print!("{}", ast)
+    print!("{:#?}", ast)
 }

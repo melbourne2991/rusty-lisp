@@ -1,8 +1,6 @@
 use compiler::errors::UnexpectedTokenError;
-use compiler::lexer::{Lexer, Token, TokenType};
+use compiler::lexer::{Token, TokenType};
 use compiler::parse_tree::{NonTerminalType, PTNode, PTNodeType, PTNonTerminal, PTree};
-use std::fs::File;
-use std::io::prelude::*;
 use std::process;
 
 pub struct Parser {
@@ -114,21 +112,4 @@ impl Parser {
       _ => ParserAction::UnexpectedToken(token),
     }
   }
-}
-
-pub fn parse_file(filename: &String) -> PTree {
-  let f = File::open(filename).expect("file not found!");
-
-  let mut fbytes = f.bytes();
-  let mut parser = Parser::new();
-
-  let lexer = Lexer::new(fbytes.by_ref());
-
-  for token in lexer {
-    parser.feed(token)
-  }
-
-  let parse_tree = parser.tree;
-
-  parse_tree
 }
